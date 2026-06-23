@@ -1,0 +1,69 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isRegisteredUser() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return isRegisteredUser() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    match /system/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['role', 'email']) &&
+               data.role in ['admin', 'van_phong', 'don_vi'] &&
+               data.email is string && data.email.size() <= 100;
+      }
+
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin()) && isValidId(userId) && isValidUser(incoming());
+      allow update: if isSignedIn() && ((request.auth.uid == userId && incoming().role == existing().role) || isAdmin()) && isValidId(userId) && isValidUser(incoming());
+      allow delete: if isAdmin();
+    }
+
+    match /documents/{documentId} {
+      function isValidDocument(data, isCreate) {
+        let hasRequired = data.keys().hasAll(['documentNumber', 'summary', 'createdAt', 'createdBy']);
+        let typesValid = data.documentNumber is string && data.documentNumber.size() <= 100 &&
+                         data.summary is string && data.summary.size() <= 5000 &&
+                         data.createdBy is string &&
+                         data.createdAt is number;
+        // Optionally checking timestamps
+        let timeValid = isCreate ? true : (data.createdAt == existing().createdAt);
+        return hasRequired && typesValid && timeValid;
+      }
+
+      // Any registered user can read all documents (shared company workspace)
+      allow read, list: if isRegisteredUser();
+
+      // Any registered user can create
+      allow create: if isRegisteredUser() && isValidId(documentId) && isValidDocument(incoming(), true);
+
+      // Any registered user can update (UI distinguishes fields, rules allow shared updates)
+      allow update: if isRegisteredUser() && isValidId(documentId) && isValidDocument(incoming(), false) && incoming().diff(existing()).affectedKeys().hasAny(['documentNumber', 'issueDate', 'issuingAgency', 'summary', 'directives', 'executingUnit', 'assignee', 'specialistContent', 'executionDate', 'deadline', 'progress', 'advisingDocNumber', 'leaderOpinion', 'archived', 'updatedAt']);
+      
+      allow delete: if isRegisteredUser() && isValidId(documentId);
+    }
+  }
+}

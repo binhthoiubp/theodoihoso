@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role",
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["van_phong", "don_vi"],
+          "description": "The user's role in the system"
+        },
+        "email": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["role", "email"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "Incoming document",
+      "type": "object",
+      "properties": {
+        "documentNumber": { "type": "string" },
+        "issueDate": { "type": "string" },
+        "issuingAgency": { "type": "string" },
+        "summary": { "type": "string" },
+        "directives": { "type": "string" },
+        "executingUnit": { "type": "string" },
+        "assignee": { "type": "string" },
+        "executionDate": { "type": "string" },
+        "deadline": { "type": "string" },
+        "progress": { "type": "string" },
+        "advisingDocNumber": { "type": "string" },
+        "leaderOpinion": { "type": "string" },
+        "archived": { "type": "boolean" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["documentNumber", "summary", "createdAt", "createdBy"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles by auth uid"
+    },
+    "documents/{documentId}": {
+      "schema": { "$ref": "#/entities/Document" },
+      "description": "Incoming documents shared across the agency"
+    }
+  }
+}

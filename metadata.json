@@ -1,0 +1,6 @@
+{
+  "name": "Quản lý Văn bản đến",
+  "description": "Hệ thống theo dõi tiến độ xử lý và trạng thái văn bản đến dành cho Văn phòng và Đơn vị.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
